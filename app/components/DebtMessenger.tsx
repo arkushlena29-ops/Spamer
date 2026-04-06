@@ -2,7 +2,8 @@
 
 import React, { useState, useCallback, useRef } from "react";
 
-const DEFAULT_MESSAGE = `Добрий день, мене звати Олена Миколаївна. Представник ТОВАРИСТВО З ОБМЕЖЕНОЮ ВІДПОВІДАЛЬНІСТЮ «ФІНАНСОВА КОМПАНІЯ «ЕЛІТ ФІНАНС». Звертаюсь до вас щодо кредиту, який ви оформлювали в 'Таском Банк' кредитний договір 002/9168914-SP сума боргу на сьогодні складає 15987 грн. У вас надалі може бути нараховано інфляцію та 3 % річних згідно ст625 ЦКУ, що призведе до збільшення суми боргу для того щоб дані санкції не було застосовано, ми готові піти вам на зустріч та зробити розтермінування заборгованості на 7 місяців по 2284 грн. Перший платіж необхідно внести до 7 квітня. Робити Вам розтермінування?`;
+const buildMessage = (p: Params): string =>
+	`Добрий день, мене звати Олена Миколаївна. Представник ТОВАРИСТВО З ОБМЕЖЕНОЮ ВІДПОВІДАЛЬНІСТЮ «ФІНАНСОВА КОМПАНІЯ «ЕЛІТ ФІНАНС». Звертаюсь до вас щодо кредиту, який ви оформлювали в '${p.bank}' кредитний договір ${p.contract} сума боргу на сьогодні складає ${p.debt} грн. У вас надалі може бути нараховано інфляцію та 3 % річних згідно ст625 ЦКУ, що призведе до збільшення суми боргу для того щоб дані санкції не було застосовано, ми готові піти вам на зустріч та зробити розтермінування заборгованості на ${p.months} місяців по ${p.payment} грн. Перший платіж необхідно внести до ${p.date}. Робити Вам розтермінування?`;
 
 const cleanPhone = (raw: string): string => raw.replace(/[\s\-\(\)]/g, "");
 
@@ -96,7 +97,7 @@ const DEFAULT_PARAMS: Params = {
 
 export default function DebtMessenger() {
 	const [phone, setPhone] = useState("");
-	const [message, setMessage] = useState(DEFAULT_MESSAGE);
+	const [message, setMessage] = useState(() => buildMessage(DEFAULT_PARAMS));
 	const [params, setParams] = useState<Params>(DEFAULT_PARAMS);
 	const [error, setError] = useState<string | null>(null);
 	const [tgLoading, setTgLoading] = useState(false);
@@ -105,13 +106,9 @@ export default function DebtMessenger() {
 
 	const handleParamChange = useCallback((key: keyof Params, newVal: string) => {
 		setParams((prev) => {
-			const old = prev[key];
-			setMessage((msg) => {
-				const search = key === "months" ? `${old} місяців` : old;
-				const replace = key === "months" ? `${newVal} місяців` : newVal;
-				return msg.replace(search, replace);
-			});
-			return { ...prev, [key]: newVal };
+			const next = { ...prev, [key]: newVal };
+			setMessage(buildMessage(next));
+			return next;
 		});
 	}, []);
 
