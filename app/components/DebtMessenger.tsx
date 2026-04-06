@@ -67,13 +67,53 @@ const PLATFORMS: Record<Platform, PlatformConfig> = {
 	},
 };
 
+const PARAM_FIELDS: { key: keyof Params; label: string }[] = [
+	{ key: "bank", label: "Банк" },
+	{ key: "contract", label: "Номер договора" },
+	{ key: "debt", label: "Сумма долга, грн" },
+	{ key: "months", label: "Срок, месяцев" },
+	{ key: "payment", label: "Платёж, грн" },
+	{ key: "date", label: "Дата первого платежа" },
+];
+
+interface Params {
+	bank: string;
+	contract: string;
+	debt: string;
+	months: string;
+	payment: string;
+	date: string;
+}
+
+const DEFAULT_PARAMS: Params = {
+	bank: "Таском Банк",
+	contract: "002/9168914-SP",
+	debt: "15987",
+	months: "7",
+	payment: "2284",
+	date: "7 квітня",
+};
+
 export default function DebtMessenger() {
 	const [phone, setPhone] = useState("");
 	const [message, setMessage] = useState(DEFAULT_MESSAGE);
+	const [params, setParams] = useState<Params>(DEFAULT_PARAMS);
 	const [error, setError] = useState<string | null>(null);
 	const [tgLoading, setTgLoading] = useState(false);
 	const [tgToast, setTgToast] = useState<TelegramToast | null>(null);
 	const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	const handleParamChange = useCallback((key: keyof Params, newVal: string) => {
+		setParams((prev) => {
+			const old = prev[key];
+			setMessage((msg) => {
+				const search = key === "months" ? `${old} місяців` : old;
+				const replace = key === "months" ? `${newVal} місяців` : newVal;
+				return msg.replace(search, replace);
+			});
+			return { ...prev, [key]: newVal };
+		});
+	}, []);
 
 	const showToast = (toast: TelegramToast) => {
 		if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -269,6 +309,62 @@ export default function DebtMessenger() {
 							{error}
 						</p>
 					)}
+
+					<label
+						style={{
+							display: "block",
+							marginBottom: "8px",
+							fontSize: "14px",
+							fontWeight: 600,
+							color: "#94a3b8",
+							textTransform: "uppercase",
+							letterSpacing: "0.05em",
+						}}>
+						Параметры сообщения
+					</label>
+					<div
+						style={{
+							display: "grid",
+							gridTemplateColumns: "1fr 1fr",
+							gap: "12px",
+							marginBottom: "24px",
+						}}>
+						{PARAM_FIELDS.map(({ key, label }) => (
+							<div key={key}>
+								<label
+									style={{
+										display: "block",
+										marginBottom: "4px",
+										fontSize: "11px",
+										fontWeight: 600,
+										color: "#64748b",
+										textTransform: "uppercase",
+										letterSpacing: "0.05em",
+									}}>
+									{label}
+								</label>
+								<input
+									type='text'
+									value={params[key]}
+									onChange={(e) => handleParamChange(key, e.target.value)}
+									style={{
+										width: "100%",
+										padding: "8px 12px",
+										fontSize: "14px",
+										background: "#0f172a",
+										border: "1px solid #334155",
+										borderRadius: "6px",
+										color: "#f1f5f9",
+										outline: "none",
+										boxSizing: "border-box",
+										transition: "border-color 0.2s",
+									}}
+									onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
+									onBlur={(e) => (e.target.style.borderColor = "#334155")}
+								/>
+							</div>
+						))}
+					</div>
 
 					<label
 						style={{
