@@ -190,221 +190,221 @@ export default function DebtMessenger() {
 	return (
 		<div
 			style={{
-				minHeight: "100vh",
+				height: "100vh",
+				overflow: "hidden",
 				background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
 				display: "flex",
-				alignItems: "flex-start",
-				justifyContent: "center",
-				padding: "40px 16px",
+				flexDirection: "column",
 				fontFamily:
 					'-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
 			}}>
+			{/* Header */}
 			<div
 				style={{
-					width: "100%",
-					maxWidth: "640px",
-					background: "#1e293b",
-					borderRadius: "16px",
-					border: "1px solid #334155",
-					boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+					background: "linear-gradient(90deg, #1e40af 0%, #7c3aed 100%)",
+					padding: "16px 32px",
+					flexShrink: 0,
+				}}>
+				<h1
+					style={{
+						margin: 0,
+						fontSize: "20px",
+						fontWeight: 700,
+						color: "#ffffff",
+						letterSpacing: "-0.025em",
+					}}>
+					Мессенджер для взыскания
+				</h1>
+				<p
+					style={{
+						margin: "2px 0 0",
+						fontSize: "13px",
+						color: "rgba(255, 255, 255, 0.7)",
+					}}>
+					Отправка сообщений через мессенджеры
+				</p>
+			</div>
+
+			{/* Body */}
+			<div
+				style={{
+					flex: 1,
+					display: "grid",
+					gridTemplateColumns: "1fr 1fr",
+					gap: "24px",
+					padding: "24px 32px",
 					overflow: "hidden",
 				}}>
-				<div
-					style={{
-						background: "linear-gradient(90deg, #1e40af 0%, #7c3aed 100%)",
-						padding: "24px 32px",
-					}}>
-					<h1
-						style={{
-							margin: 0,
-							fontSize: "24px",
-							fontWeight: 700,
-							color: "#ffffff",
-							letterSpacing: "-0.025em",
-						}}>
-						Мессенджер для взыскания
-					</h1>
-					<p
-						style={{
-							margin: "4px 0 0",
-							fontSize: "14px",
-							color: "rgba(255, 255, 255, 0.7)",
-						}}>
-						Отправка сообщений через мессенджеры
-					</p>
+				{/* Left column */}
+				<div style={{ display: "flex", flexDirection: "column", gap: "20px", overflow: "hidden" }}>
+					{/* Phone */}
+					<div>
+						<label
+							style={{
+								display: "block",
+								marginBottom: "6px",
+								fontSize: "13px",
+								fontWeight: 600,
+								color: "#94a3b8",
+								textTransform: "uppercase",
+								letterSpacing: "0.05em",
+							}}>
+							Номер телефона должника
+						</label>
+						<div style={{ display: "flex", gap: "8px" }}>
+							<input
+								type='tel'
+								value={phone}
+								onChange={(e) => {
+									setPhone(e.target.value);
+									setError(null);
+								}}
+								placeholder='например, 380501234567'
+								style={{
+									flex: 1,
+									padding: "10px 14px",
+									fontSize: "15px",
+									background: "#0f172a",
+									border: `1px solid ${error ? "#ef4444" : "#334155"}`,
+									borderRadius: "8px",
+									color: "#f1f5f9",
+									outline: "none",
+									transition: "border-color 0.2s",
+								}}
+								onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
+								onBlur={(e) =>
+									(e.target.style.borderColor = error ? "#ef4444" : "#334155")
+								}
+							/>
+							<button
+								onClick={handleClearPhone}
+								style={{
+									padding: "10px 14px",
+									fontSize: "13px",
+									fontWeight: 500,
+									background: "#334155",
+									color: "#94a3b8",
+									border: "none",
+									borderRadius: "8px",
+									cursor: "pointer",
+									whiteSpace: "nowrap",
+									transition: "background 0.2s",
+								}}
+								onMouseEnter={(e) =>
+									(e.currentTarget.style.background = "#475569")
+								}
+								onMouseLeave={(e) =>
+									(e.currentTarget.style.background = "#334155")
+								}>
+								Очистить
+							</button>
+						</div>
+						{error && (
+							<p style={{ margin: "6px 0 0", fontSize: "12px", color: "#ef4444" }}>
+								{error}
+							</p>
+						)}
+					</div>
+
+					{/* Params */}
+					<div style={{ flex: 1 }}>
+						<label
+							style={{
+								display: "block",
+								marginBottom: "8px",
+								fontSize: "13px",
+								fontWeight: 600,
+								color: "#94a3b8",
+								textTransform: "uppercase",
+								letterSpacing: "0.05em",
+							}}>
+							Параметры сообщения
+						</label>
+						<div
+							style={{
+								display: "grid",
+								gridTemplateColumns: "1fr 1fr",
+								gap: "10px",
+							}}>
+							{PARAM_FIELDS.map(({ key, label }) => (
+								<div key={key}>
+									<label
+										style={{
+											display: "block",
+											marginBottom: "4px",
+											fontSize: "11px",
+											fontWeight: 600,
+											color: "#64748b",
+											textTransform: "uppercase",
+											letterSpacing: "0.05em",
+										}}>
+										{label}
+									</label>
+									<input
+										type='text'
+										value={params[key]}
+										onChange={(e) => handleParamChange(key, e.target.value)}
+										style={{
+											width: "100%",
+											padding: "7px 10px",
+											fontSize: "13px",
+											background: "#0f172a",
+											border: "1px solid #334155",
+											borderRadius: "6px",
+											color: "#f1f5f9",
+											outline: "none",
+											boxSizing: "border-box",
+											transition: "border-color 0.2s",
+										}}
+										onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
+										onBlur={(e) => (e.target.style.borderColor = "#334155")}
+									/>
+								</div>
+							))}
+						</div>
+					</div>
 				</div>
 
-				<div style={{ padding: "32px" }}>
-					<label
-						style={{
-							display: "block",
-							marginBottom: "8px",
-							fontSize: "14px",
-							fontWeight: 600,
-							color: "#94a3b8",
-							textTransform: "uppercase",
-							letterSpacing: "0.05em",
-						}}>
-						Номер телефона должника
-					</label>
-					<div style={{ display: "flex", gap: "8px", marginBottom: "24px" }}>
-						<input
-							type='tel'
-							value={phone}
-							onChange={(e) => {
-								setPhone(e.target.value);
-								setError(null);
-							}}
-							placeholder='например, 380501234567'
+				{/* Right column */}
+				<div style={{ display: "flex", flexDirection: "column", gap: "16px", overflow: "hidden" }}>
+					<div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+						<label
+							style={{
+								display: "block",
+								marginBottom: "6px",
+								fontSize: "13px",
+								fontWeight: 600,
+								color: "#94a3b8",
+								textTransform: "uppercase",
+								letterSpacing: "0.05em",
+							}}>
+							Шаблон сообщения
+						</label>
+						<textarea
+							value={message}
+							onChange={(e) => setMessage(e.target.value)}
 							style={{
 								flex: 1,
-								padding: "12px 16px",
-								fontSize: "16px",
+								width: "100%",
+								padding: "14px",
+								fontSize: "13px",
+								lineHeight: "1.6",
 								background: "#0f172a",
-								border: `1px solid ${error ? "#ef4444" : "#334155"}`,
+								border: "1px solid #334155",
 								borderRadius: "8px",
 								color: "#f1f5f9",
 								outline: "none",
+								resize: "none",
+								fontFamily: "inherit",
+								boxSizing: "border-box",
 								transition: "border-color 0.2s",
 							}}
 							onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
-							onBlur={(e) =>
-								(e.target.style.borderColor = error ? "#ef4444" : "#334155")
-							}
+							onBlur={(e) => (e.target.style.borderColor = "#334155")}
 						/>
-						<button
-							onClick={handleClearPhone}
-							style={{
-								padding: "12px 16px",
-								fontSize: "14px",
-								fontWeight: 500,
-								background: "#334155",
-								color: "#94a3b8",
-								border: "none",
-								borderRadius: "8px",
-								cursor: "pointer",
-								whiteSpace: "nowrap",
-								transition: "background 0.2s",
-							}}
-							onMouseEnter={(e) =>
-								(e.currentTarget.style.background = "#475569")
-							}
-							onMouseLeave={(e) =>
-								(e.currentTarget.style.background = "#334155")
-							}>
-							Очистить номер
-						</button>
 					</div>
 
-					{error && (
-						<p
-							style={{
-								margin: "-16px 0 16px",
-								fontSize: "13px",
-								color: "#ef4444",
-							}}>
-							{error}
-						</p>
-					)}
-
-					<label
-						style={{
-							display: "block",
-							marginBottom: "8px",
-							fontSize: "14px",
-							fontWeight: 600,
-							color: "#94a3b8",
-							textTransform: "uppercase",
-							letterSpacing: "0.05em",
-						}}>
-						Параметры сообщения
-					</label>
-					<div
-						style={{
-							display: "grid",
-							gridTemplateColumns: "1fr 1fr",
-							gap: "12px",
-							marginBottom: "24px",
-						}}>
-						{PARAM_FIELDS.map(({ key, label }) => (
-							<div key={key}>
-								<label
-									style={{
-										display: "block",
-										marginBottom: "4px",
-										fontSize: "11px",
-										fontWeight: 600,
-										color: "#64748b",
-										textTransform: "uppercase",
-										letterSpacing: "0.05em",
-									}}>
-									{label}
-								</label>
-								<input
-									type='text'
-									value={params[key]}
-									onChange={(e) => handleParamChange(key, e.target.value)}
-									style={{
-										width: "100%",
-										padding: "8px 12px",
-										fontSize: "14px",
-										background: "#0f172a",
-										border: "1px solid #334155",
-										borderRadius: "6px",
-										color: "#f1f5f9",
-										outline: "none",
-										boxSizing: "border-box",
-										transition: "border-color 0.2s",
-									}}
-									onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
-									onBlur={(e) => (e.target.style.borderColor = "#334155")}
-								/>
-							</div>
-						))}
-					</div>
-
-					<label
-						style={{
-							display: "block",
-							marginBottom: "8px",
-							fontSize: "14px",
-							fontWeight: 600,
-							color: "#94a3b8",
-							textTransform: "uppercase",
-							letterSpacing: "0.05em",
-						}}>
-						Шаблон сообщения
-					</label>
-					<textarea
-						value={message}
-						onChange={(e) => setMessage(e.target.value)}
-						rows={10}
-						style={{
-							width: "100%",
-							padding: "16px",
-							fontSize: "14px",
-							lineHeight: "1.6",
-							background: "#0f172a",
-							border: "1px solid #334155",
-							borderRadius: "8px",
-							color: "#f1f5f9",
-							outline: "none",
-							resize: "vertical",
-							fontFamily: "inherit",
-							boxSizing: "border-box",
-							transition: "border-color 0.2s",
-						}}
-						onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
-						onBlur={(e) => (e.target.style.borderColor = "#334155")}
-					/>
-
-					<div
-						style={{
-							display: "flex",
-							flexDirection: "column",
-							gap: "12px",
-							marginTop: "24px",
-						}}>
+					<div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
 						{(Object.keys(PLATFORMS) as Platform[]).map((platform) => {
 							const config = PLATFORMS[platform];
 							const isLoading = platform === "telegram" && tgLoading;
@@ -418,8 +418,8 @@ export default function DebtMessenger() {
 										alignItems: "center",
 										justifyContent: "center",
 										gap: "10px",
-										padding: "14px 24px",
-										fontSize: "15px",
+										padding: "11px 20px",
+										fontSize: "14px",
 										fontWeight: 600,
 										background: config.color,
 										color: "#ffffff",
@@ -427,8 +427,7 @@ export default function DebtMessenger() {
 										borderRadius: "10px",
 										cursor: isLoading ? "not-allowed" : "pointer",
 										opacity: isLoading ? 0.7 : 1,
-										transition:
-											"transform 0.1s, background 0.2s, box-shadow 0.2s",
+										transition: "transform 0.1s, background 0.2s, box-shadow 0.2s",
 										boxShadow: `0 4px 14px ${config.color}40`,
 									}}
 									onMouseEnter={(e) => {
@@ -451,8 +450,7 @@ export default function DebtMessenger() {
 					{tgToast && (
 						<div
 							style={{
-								marginTop: "16px",
-								padding: "12px 16px",
+								padding: "10px 14px",
 								borderRadius: "8px",
 								fontSize: "13px",
 								fontWeight: 500,
@@ -463,18 +461,6 @@ export default function DebtMessenger() {
 							{tgToast.text}
 						</div>
 					)}
-
-					<p
-						style={{
-							marginTop: "24px",
-							fontSize: "12px",
-							color: "#64748b",
-							textAlign: "center",
-							lineHeight: "1.5",
-						}}>
-						Откроет приложение в новой вкладке. Убедитесь, что WhatsApp,
-						Telegram или Viber запущены.
-					</p>
 				</div>
 			</div>
 		</div>
