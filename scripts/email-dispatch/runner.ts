@@ -57,7 +57,7 @@ export async function runDispatch(options: RunOptions): Promise<void> {
   // ── Step 1: Optional reset ─────────────────────────────────────────────────
   if (cfg.reset) {
     resetState();
-    log({ level: "system", message: "State reset — starting from row 0" });
+    log({ level: "system", message: "Состояние сброшено — начинаем с строки 0" });
   }
 
   // ── Step 2: Load persisted state ───────────────────────────────────────────
@@ -70,8 +70,8 @@ export async function runDispatch(options: RunOptions): Promise<void> {
     level: "system",
     message:
       startIndex > 0
-        ? `Resuming from row ${startIndex} (${persistedState.totalSent} already sent)`
-        : "Starting fresh from row 0",
+        ? `Продолжаем с строки ${startIndex} (${persistedState.totalSent} уже отправлено)`
+        : "Начинаем с строки 0",
   });
 
   // ── Step 3: Parse Excel ────────────────────────────────────────────────────
@@ -80,7 +80,7 @@ export async function runDispatch(options: RunOptions): Promise<void> {
   const rows = parseEmailsFile(log);
 
   if (rows.length === 0) {
-    log({ level: "error", message: "No valid rows found in the Excel file." });
+    log({ level: "error", message: "В Excel файле не найдено валидных строк." });
     return;
   }
 
@@ -89,7 +89,7 @@ export async function runDispatch(options: RunOptions): Promise<void> {
   if (startIndex >= rows.length) {
     log({
       level: "system",
-      message: `All ${rows.length} rows have already been sent. Nothing to do.`,
+      message: `Все ${rows.length} строк уже отправлены. Нечего делать.`,
     });
     return;
   }
@@ -97,7 +97,7 @@ export async function runDispatch(options: RunOptions): Promise<void> {
   const remaining = rows.length - startIndex;
   log({
     level: "system",
-    message: `${remaining} rows remaining (${startIndex} already sent, ${rows.length} total)`,
+    message: `${remaining} строк осталось (${startIndex} уже отправлено, ${rows.length} всего)`,
   });
 
   // ── Step 4: Initialise mailer ──────────────────────────────────────────────
@@ -107,22 +107,22 @@ export async function runDispatch(options: RunOptions): Promise<void> {
   const password = getPassword();
 
   if (accounts.length === 0) {
-    log({ level: "error", message: "No SMTP accounts configured — add accounts in the Accounts tab." });
+    log({ level: "error", message: "SMTP аккаунты не настроены — добавьте их на вкладке Аккаунты." });
     return;
   }
 
   if (!password) {
-    log({ level: "error", message: "SMTP password not set — enter it in the Accounts tab." });
+    log({ level: "error", message: "SMTP пароль не установлен — введите его на вкладке Аккаунты." });
     return;
   }
 
   const dispatcher = new MailDispatcher(accounts, password, log);
 
   if (!cfg.dryRun) {
-    log({ level: "system", message: "Verifying SMTP connections…" });
+    log({ level: "system", message: "Проверка SMTP подключений…" });
     await dispatcher.verifyAll();
   } else {
-    log({ level: "warn", message: "DRY RUN — no emails will actually be sent" });
+    log({ level: "warn", message: "ТЕСТОВЫЙ РЕЖИМ — письма отправляться не будут" });
   }
 
   // ── Step 5: Dispatch loop ──────────────────────────────────────────────────
@@ -132,7 +132,7 @@ export async function runDispatch(options: RunOptions): Promise<void> {
   for (let i = startIndex; i < rows.length; i++) {
     // Check abort signal on every iteration (set by worker-manager.stop())
     if (signal.aborted) {
-      log({ level: "warn", message: `Dispatch stopped at row ${i}` });
+      log({ level: "warn", message: `Рассылка остановлена на строке ${i}` });
       saveState(currentState);
       break;
     }
@@ -147,7 +147,7 @@ export async function runDispatch(options: RunOptions): Promise<void> {
       if (cfg.dryRun) {
         log({
           level: "info",
-          message: `[DRY] Would send to ${row.email} via SMTP #${smtpNum}`,
+          message: `[ТЕСТ] Отправить ${row.email} через SMTP #${smtpNum}`,
           email: row.email,
           smtpNum,
           smtpHost,
@@ -156,7 +156,7 @@ export async function runDispatch(options: RunOptions): Promise<void> {
         await dispatcher.send(payload, i);
         log({
           level: "success",
-          message: `Sent → ${row.email} via SMTP #${smtpNum} (${smtpHost})`,
+          message: `Отправлено → ${row.email} через SMTP #${smtpNum} (${smtpHost})`,
           email: row.email,
           smtpNum,
           smtpHost,
@@ -180,7 +180,7 @@ export async function runDispatch(options: RunOptions): Promise<void> {
     } catch (err) {
       log({
         level: "error",
-        message: `Failed → ${row.email}: ${(err as Error).message}`,
+        message: `Ошибка → ${row.email}: ${(err as Error).message}`,
         email: row.email,
         smtpNum,
         smtpHost,
@@ -198,7 +198,7 @@ export async function runDispatch(options: RunOptions): Promise<void> {
       if (batchCounter % cfg.batchSize === 0) {
         log({
           level: "rate",
-          message: `Batch of ${cfg.batchSize} complete — pausing ${cfg.batchPauseMs}ms`,
+          message: `Пачка из ${cfg.batchSize} отправлена — пауза ${cfg.batchPauseMs}мс`,
         });
         await abortableSleep(cfg.batchPauseMs, signal);
       } else {
@@ -212,7 +212,7 @@ export async function runDispatch(options: RunOptions): Promise<void> {
   if (!signal.aborted) {
     log({
       level: "system",
-      message: `Done — sent: ${currentState.totalSent}, failed: ${currentState.totalFailed}`,
+      message: `Готово — отправлено: ${currentState.totalSent}, ошибок: ${currentState.totalFailed}`,
     });
   }
 }

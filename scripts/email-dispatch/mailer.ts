@@ -15,7 +15,7 @@ export class MailDispatcher {
     password: string,
     log: Logger = (e) => console.log(`[Mailer] ${e.message}`)
   ) {
-    if (accounts.length === 0) throw new Error("No SMTP accounts configured");
+    if (accounts.length === 0) throw new Error("SMTP аккаунты не настроены");
     this.log       = log;
     this.accounts  = accounts;
     this.usage     = getDailyUsage(); // snapshot — kept in sync via recordSent()
@@ -40,7 +40,7 @@ export class MailDispatcher {
       const acc = this.accounts[i];
       try {
         await this.transporters[i].verify();
-        this.log({ level: "system", message: `SMTP #${i + 1} (${acc.host}) — OK ✓` });
+        this.log({ level: "system", message: `SMTP #${i + 1} (${acc.host}) — ОК ✓` });
       } catch (err) {
         throw new Error(`SMTP #${i + 1} (${acc.host}) failed: ${(err as Error).message}`);
       }
@@ -68,7 +68,7 @@ export class MailDispatcher {
     const summary = this.accounts
       .map((a) => `${a.email} (${this.usage[a.id] ?? 0}/${a.dailyLimit})`)
       .join(", ");
-    throw new Error(`All SMTP accounts have reached their daily limit — ${summary}`);
+    throw new Error(`Все SMTP аккаунты достигли дневного лимита — ${summary}`);
   }
 
   // ─── Info helpers (called before send() in runner.ts for logging) ────────────
@@ -105,9 +105,9 @@ export class MailDispatcher {
     const sent  = this.usage[acc.id];
     const limit = acc.dailyLimit;
     if (sent === limit) {
-      this.log({ level: "warn", message: `SMTP #${slot + 1} (${acc.email}) reached daily limit of ${limit}` });
+      this.log({ level: "warn", message: `SMTP #${slot + 1} (${acc.email}) достиг дневного лимита ${limit}` });
     } else if (sent === Math.floor(limit * 0.9)) {
-      this.log({ level: "warn", message: `SMTP #${slot + 1} (${acc.email}) at 90% daily limit (${sent}/${limit})` });
+      this.log({ level: "warn", message: `SMTP #${slot + 1} (${acc.email}) на 90% дневного лимита (${sent}/${limit})` });
     }
   }
 

@@ -91,7 +91,7 @@ function normalizeRow(raw: RawRow, rowIndex: number): EmailRow | null {
 export function parseEmailsFile(
 	log: Logger = (e) => console.log(`[Parser] ${e.message}`),
 ): EmailRow[] {
-	log({ level: "system", message: `Reading ${EXCEL_PATH} …` });
+	log({ level: "system", message: `Чтение ${EXCEL_PATH} …` });
 
 	// Read into a Buffer so XLSX doesn't open a second file handle
 	const buffer = readFileSync(EXCEL_PATH);
@@ -103,7 +103,7 @@ export function parseEmailsFile(
 	});
 
 	const sheetName = workbook.SheetNames[0];
-	if (!sheetName) throw new Error("[Parser] Excel file has no sheets.");
+	if (!sheetName) throw new Error("[Парсер] Excel файл не содержит листов.");
 
 	const sheet = workbook.Sheets[sheetName];
 
@@ -116,7 +116,7 @@ export function parseEmailsFile(
 
 	log({
 		level: "system",
-		message: `Sheet "${sheetName}" — ${rawRows.length} raw rows`,
+		message: `Лист "${sheetName}" — ${rawRows.length} строк`,
 	});
 
 	// Single-pass normalise + filter
@@ -136,7 +136,7 @@ export function parseEmailsFile(
 
 	log({
 		level: "system",
-		message: `${rows.length} valid unique rows after filtering`,
+		message: `${rows.length} валидных уникальных строк после фильтрации`,
 	});
 
 	return rows;

@@ -14,7 +14,7 @@ import type { EmailRow, EmailPayload, TemplateId } from "./types";
 /** Returns a human-readable salutation from whatever name fields are populated. */
 function salutation(row: EmailRow): string {
   const parts = [row.firstName, row.lastName].filter(Boolean);
-  return parts.length > 0 ? parts.join(" ") : "Шановний клієнте";
+  return parts.length > 0 ? parts.join(" ") : "Уважаемый клиент";
 }
 
 /** Replace all {{key}} placeholders with actual values. */
@@ -33,7 +33,7 @@ export function selectTemplate(row: EmailRow, from: string): EmailPayload {
 
   if (!tpl) {
     throw new Error(
-      `Template #${id} not found — make sure data/email-templates.json exists and has 3 entries`
+      `Шаблон #${id} не найден — убедитесь что data/email-templates.json существует и содержит 3 записи`
     );
   }
 
