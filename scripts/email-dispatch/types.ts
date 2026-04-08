@@ -27,7 +27,7 @@ export interface SmtpAccount {
   port: number;
   secure: boolean;    // true = TLS port 465, false = STARTTLS port 587
   dailyLimit: number; // maximum emails allowed to send per calendar day (default 500)
-  // password is NOT stored here — it lives in .env.local as SMTP_PASSWORD
+  password?: string;   // SMTP password (stored in json, remove before committing)
 }
 
 

@@ -10,6 +10,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { runDispatch, type RunConfig } from "../../scripts/email-dispatch/runner";
+import { loadState } from "../../scripts/email-dispatch/state";
 import type {
   LogEntry,
   Logger,
@@ -27,17 +28,22 @@ type Subscriber = (event: StreamEvent) => void;
 // ─── WorkerManager class ──────────────────────────────────────────────────────
 
 class WorkerManager {
-  private status: WorkerStatus = {
-    running: false,
-    stopping: false,
-    done: false,
-    error: null,
-    totalRows: 0,
-    lastProcessedIndex: -1,
-    totalSent: 0,
-    totalFailed: 0,
-    startedAt: null,
-  };
+  private status: WorkerStatus;
+
+  constructor() {
+    const persisted = loadState();
+    this.status = {
+      running: false,
+      stopping: false,
+      done: false,
+      error: null,
+      totalRows: 0,
+      lastProcessedIndex: persisted.lastProcessedIndex,
+      totalSent: persisted.totalSent,
+      totalFailed: persisted.totalFailed,
+      startedAt: null,
+    };
+  }
 
   private logs: LogEntry[] = [];
   private logCounter = 0;

@@ -1,6 +1,6 @@
 export const runtime = "nodejs";
 
-import { updateAccount, deleteAccount } from "@/lib/email-worker/accounts-store";
+import { updateAccount, deleteAccount, hasPassword } from "@/lib/email-worker/accounts-store";
 import type { SmtpAccount } from "@/scripts/email-dispatch/types";
 
 export async function PUT(
@@ -9,8 +9,9 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const body = (await request.json()) as Partial<Omit<SmtpAccount, "id">>;
-    return Response.json(updateAccount(id, body));
+    const body = (await request.json()) as Partial<SmtpAccount>;
+    const updated = updateAccount(id, body);
+    return Response.json({ ...updated, password: undefined, hasPassword: hasPassword(id) });
   } catch (err) {
     return Response.json({ error: (err as Error).message }, { status: 404 });
   }

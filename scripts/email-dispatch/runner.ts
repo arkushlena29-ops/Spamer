@@ -10,7 +10,7 @@ import { parseEmailsFile } from "./parser";
 import { loadState, saveState, resetState } from "./state";
 import { MailDispatcher } from "./mailer";
 import { selectTemplate } from "./templates";
-import { getAccounts, getPassword } from "../../lib/email-worker/accounts-store";
+import { getAccounts, getAccountPassword } from "../../lib/email-worker/accounts-store";
 import type { DispatchState, Logger, WorkerStatus } from "./types";
 
 export interface RunConfig {
@@ -104,19 +104,29 @@ export async function runDispatch(options: RunOptions): Promise<void> {
   if (signal.aborted) return;
 
   const accounts = getAccounts();
-  const password = getPassword();
 
   if (accounts.length === 0) {
     log({ level: "error", message: "SMTP аккаунты не настроены — добавьте их на вкладке Аккаунты." });
     return;
   }
 
-  if (!password) {
-    log({ level: "error", message: "SMTP пароль не установлен — введите его на вкладке Аккаунты." });
+  const passwords: Record<string, string> = {};
+  const missingPassword: string[] = [];
+  for (const acc of accounts) {
+    const pass = getAccountPassword(acc.id);
+    if (pass) {
+      passwords[acc.id] = pass;
+    } else {
+      missingPassword.push(acc.email);
+    }
+  }
+
+  if (missingPassword.length > 0) {
+    log({ level: "error", message: `Пароли не установлены для: ${missingPassword.join(", ")}` });
     return;
   }
 
-  const dispatcher = new MailDispatcher(accounts, password, log);
+  const dispatcher = new MailDispatcher(accounts, passwords, log);
 
   if (!cfg.dryRun) {
     log({ level: "system", message: "Проверка SMTP подключений…" });

@@ -123,11 +123,19 @@ export function parseEmailsFile(
 	// Single-pass normalise + filter
 	const rows: EmailRow[] = [];
 	const seenEmails = new Set<string>(); // deduplicate by email address
+	let noEmail = 0;
+	let duplicates = 0;
 
 	for (let i = 0; i < rawRows.length; i++) {
 		const row = normalizeRow(rawRows[i], i);
-		if (!row) continue;
-		if (seenEmails.has(row.email)) continue; // skip duplicates
+		if (!row) {
+			noEmail++;
+			continue;
+		}
+		if (seenEmails.has(row.email)) {
+			duplicates++;
+			continue;
+		}
 		seenEmails.add(row.email);
 		rows.push(row);
 	}
@@ -135,9 +143,10 @@ export function parseEmailsFile(
 	// Explicitly clear the raw array so GC can reclaim its memory
 	rawRows.length = 0;
 
+	const filtered = noEmail + duplicates;
 	log({
 		level: "system",
-		message: `${rows.length} валидных уникальных строк после фильтрации`,
+		message: `${rows.length} валидных (отфильтровано: ${filtered}, без email: ${noEmail}, дубликаты: ${duplicates})`,
 	});
 
 	return rows;

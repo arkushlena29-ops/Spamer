@@ -65,15 +65,13 @@ const logIcon: Record<LogEntry["level"], string> = {
 // AccountsTab
 // ─────────────────────────────────────────────────────────────────────────────
 
-type FormData = Omit<SmtpAccount, "id">;
-const BLANK_FORM: FormData = { email: "", fromName: "", host: "", port: 587, secure: false, dailyLimit: 500 };
+type AccountWithPassword = SmtpAccount & { hasPassword?: boolean };
+type FormData = Omit<SmtpAccount, "id"> & { password?: string };
+const BLANK_FORM: FormData = { email: "", fromName: "ЕЛІТ ФІНАНС", host: "smtp.gmail.com", port: 587, secure: false, dailyLimit: 500 };
 
 function AccountsTab() {
-  const [accounts, setAccounts]       = useState<SmtpAccount[]>([]);
-  const [hasPassword, setHasPassword] = useState(false);
-  const [password, setPassword]       = useState("");
-  const [pwSaving, setPwSaving]       = useState(false);
-  const [editing, setEditing]         = useState<SmtpAccount | null>(null);
+  const [accounts, setAccounts]       = useState<AccountWithPassword[]>([]);
+  const [editing, setEditing]         = useState<AccountWithPassword | null>(null);
   const [form, setForm]               = useState<FormData>(BLANK_FORM);
   const [showForm, setShowForm]       = useState(false);
   const [saving, setSaving]           = useState(false);
@@ -82,9 +80,8 @@ function AccountsTab() {
   const load = useCallback(() => {
     fetch("/api/email/accounts")
       .then((r) => r.json())
-      .then(({ accounts: a, hasPassword: hp, usage: u }: { accounts: SmtpAccount[]; hasPassword: boolean; usage: Record<string, number> }) => {
+      .then(({ accounts: a, usage: u }: { accounts: AccountWithPassword[]; usage: Record<string, number> }) => {
         setAccounts(a);
-        setHasPassword(hp);
         setUsage(u ?? {});
       });
   }, []);
@@ -92,9 +89,9 @@ function AccountsTab() {
   useEffect(() => { load(); }, [load]);
 
   const openAdd  = () => { setEditing(null); setForm(BLANK_FORM); setShowForm(true); };
-  const openEdit = (acc: SmtpAccount) => {
+  const openEdit = (acc: AccountWithPassword) => {
     setEditing(acc);
-    setForm({ email: acc.email, fromName: acc.fromName, host: acc.host, port: acc.port, secure: acc.secure, dailyLimit: acc.dailyLimit ?? 500 });
+    setForm({ email: acc.email, fromName: acc.fromName, host: acc.host, port: acc.port, secure: acc.secure, dailyLimit: acc.dailyLimit ?? 500, password: "" });
     setShowForm(true);
   };
 
@@ -114,40 +111,8 @@ function AccountsTab() {
     load();
   };
 
-  const handleSavePassword = async () => {
-    setPwSaving(true);
-    await fetch("/api/email/accounts", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
-    });
-    setHasPassword(password.length > 0);
-    setPassword("");
-    setPwSaving(false);
-  };
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-
-      {/* Shared password */}
-      <section style={{ background: surface, border: `1px solid ${border}`, borderRadius: "10px", padding: "18px 20px" }}>
-        <div style={{ fontSize: "13px", fontWeight: 600, color: bodyText, marginBottom: "4px" }}>
-          Общий пароль
-          {hasPassword && <span style={{ marginLeft: "10px", fontSize: "11px", color: "#6ee7b7", background: "#022c22", padding: "2px 8px", borderRadius: "99px" }}>установлен</span>}
-        </div>
-        <div style={{ fontSize: "12px", color: dimText, marginBottom: "12px" }}>
-          Один пароль для всех аккаунтов. Сохраняется в <code style={{ color: "#94a3b8" }}>.env.local</code> — не попадает в git.
-        </div>
-        <div style={{ display: "flex", gap: "10px" }}>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-            placeholder={hasPassword ? "••••••••  (оставьте пустым, чтобы сохранить текущий)" : "Введите общий App Password"}
-            style={{ ...inputBase, flex: 1 }} />
-          <button onClick={handleSavePassword} disabled={pwSaving || password.length === 0}
-            style={btn("#2563eb", "#fff", pwSaving || password.length === 0)}>
-            {pwSaving ? "Сохранение…" : "Сохранить"}
-          </button>
-        </div>
-      </section>
 
       {/* Accounts list */}
       <section>
@@ -180,6 +145,8 @@ function AccountsTab() {
                     <div style={{ fontSize: "13px", fontWeight: 600, color: exhausted ? "#fca5a5" : bodyText, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {acc.fromName ? `${acc.fromName} ` : ""}
                       <span style={{ color: dimText }}>&lt;{acc.email}&gt;</span>
+                      {acc.hasPassword && <span style={{ marginLeft: "8px", fontSize: "10px", color: "#6ee7b7", background: "#022c22", padding: "1px 7px", borderRadius: "99px" }}>✓ пароль</span>}
+                      {!acc.hasPassword && <span style={{ marginLeft: "8px", fontSize: "10px", color: "#fca5a5", background: "#450a0a", padding: "1px 7px", borderRadius: "99px" }}>✗ пароль</span>}
                       {exhausted && <span style={{ marginLeft: "8px", fontSize: "10px", fontWeight: 700, color: "#ef4444", background: "#450a0a", padding: "1px 7px", borderRadius: "99px" }}>ЛИМИТ ИСЧЕРПАН</span>}
                     </div>
                     <div style={{ fontSize: "11px", color: dimText, marginTop: "2px" }}>
@@ -218,20 +185,24 @@ function AccountsTab() {
             <div>
               {label("Email (логин SMTP)")}
               <input style={inputBase} value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="user@gmail.com" />
+                onChange={(e) => setForm({ ...form, email: e.target.value })} />
             </div>
             <div>
               {label("Имя отправителя")}
               <input style={inputBase} value={form.fromName}
-                onChange={(e) => setForm({ ...form, fromName: e.target.value })}
-                placeholder="ЕЛІТ ФІНАНС" />
+                onChange={(e) => setForm({ ...form, fromName: e.target.value })} />
             </div>
             <div>
               {label("SMTP хост")}
               <input style={inputBase} value={form.host}
-                onChange={(e) => setForm({ ...form, host: e.target.value })}
-                placeholder="smtp.gmail.com" />
+                onChange={(e) => setForm({ ...form, host: e.target.value })} />
+            </div>
+            <div>
+              {label("Пароль SMTP")}
+              <input type="password" style={inputBase} value={form.password ?? ""}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                placeholder={editing?.hasPassword ? "•••••••• (оставьте пустым, чтобы не менять)" : ""}
+                autoComplete="off" />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "10px", alignItems: "end" }}>
               <div>
@@ -254,8 +225,8 @@ function AccountsTab() {
           </div>
           <div style={{ display: "flex", gap: "10px", marginTop: "16px", justifyContent: "flex-end" }}>
             <button onClick={() => setShowForm(false)} style={btn("#1e293b", "#94a3b8")}>Отмена</button>
-            <button onClick={handleSave} disabled={saving || !form.email || !form.host}
-              style={btn("#2563eb", "#fff", saving || !form.email || !form.host)}>
+            <button onClick={handleSave} disabled={saving || !form.email || !form.host || (!editing && !form.password)}
+              style={btn("#2563eb", "#fff", saving || !form.email || !form.host || (!editing && !form.password))}>
               {saving ? "Сохранение…" : editing ? "Сохранить изменения" : "Добавить аккаунт"}
             </button>
           </div>
@@ -403,8 +374,8 @@ function DispatchTab() {
           padding: "10px 12px", fontFamily: '"Geist Mono",Consolas,monospace', fontSize: "12px", lineHeight: "1.7" }}>
           {logs.length === 0
             ? <span style={{ color: "#334155" }}>Логов пока нет — нажмите «Начать отправку».</span>
-            : logs.map((e) => (
-              <div key={e.id} style={{ display: "flex", gap: "10px", color: logColor[e.level] }}>
+            : logs.map((e, i) => (
+              <div key={`${e.id}-${e.ts}-${i}`} style={{ display: "flex", gap: "10px", color: logColor[e.level] }}>
                 <span style={{ color: "#334155", flexShrink: 0 }}>{e.ts}</span>
                 <span style={{ flexShrink: 0 }}>{logIcon[e.level]}</span>
                 <span style={{ wordBreak: "break-all" }}>{e.message}</span>

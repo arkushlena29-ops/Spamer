@@ -102,14 +102,13 @@ export default function TemplatesTab() {
 		load();
 	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-	// Load sample row from xlsx for preview
+  // Load sample row from xlsx for preview
 	const loadSampleRow = async () => {
 		setLoadingSample(true);
 		try {
 			const res = await fetch("/api/email/sample-row");
 			const data = await res.json();
 			if (data.row) {
-				console.log(data.row);
 				setPreviewData(data.row);
 			}
 		} catch (e) {
