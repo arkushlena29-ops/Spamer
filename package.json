@@ -6,22 +6,32 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "email:dispatch": "ts-node --project scripts/tsconfig.json scripts/email-dispatch/index.ts",
+    "email:dispatch:large": "node --max-old-space-size=4096 -r ts-node/register/transpile-only scripts/email-dispatch/index.ts",
+    "email:dry-run": "cross-env EMAIL_DRY_RUN=true ts-node --project scripts/tsconfig.json scripts/email-dispatch/index.ts",
+    "email:reset": "cross-env EMAIL_RESET=true ts-node --project scripts/tsconfig.json scripts/email-dispatch/index.ts"
   },
   "dependencies": {
+    "dotenv": "^17.4.1",
     "next": "16.2.2",
+    "nodemailer": "^8.0.5",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "telegram": "^2.26.22"
+    "telegram": "^2.26.22",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "cross-env": "^10.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.2",
     "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }

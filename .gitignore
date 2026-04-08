@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# email dispatch worker
+progress.json
+data/*.tmp
+data/smtp-usage.json
+progress.json.tmp
+progress_backup_*.json
+progress_corrupt_*.json
+scripts/dist/
