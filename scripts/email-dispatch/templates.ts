@@ -19,7 +19,7 @@ function salutation(row: EmailRow): string {
 
 /** Replace all {{key}} placeholders with actual values. */
 function substitute(template: string, vars: Record<string, string>): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => vars[key] ?? "");
+  return template.replace(/\{\{([^}]+)\}\}/g, (_, key: string) => vars[key.trim()] ?? "");
 }
 
 /**
@@ -43,6 +43,11 @@ export function selectTemplate(row: EmailRow, from: string): EmailPayload {
     lastName:  row.lastName  ?? "",
     to:        row.email,
     subject:   tpl.subject,
+    ...Object.fromEntries(
+      Object.entries(row)
+        .filter(([k]) => !["rowIndex", "email"].includes(k))
+        .map(([k, v]) => [k, String(v ?? "")])
+    ),
   };
 
   return {

@@ -70,6 +70,7 @@ function normalizeRow(raw: RawRow, rowIndex: number): EmailRow | null {
 			"Имя",
 			"Ім'я",
 			"Name",
+			"ПІБ",
 		),
 		lastName: pick(
 			raw,
