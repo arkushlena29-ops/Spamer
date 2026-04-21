@@ -3,7 +3,7 @@
 //
 // RESUMABILITY MECHANISM:
 //   After every successful send, saveState() writes the current row index to
-//   progress.json using an atomic rename:
+//   data/progress.json using an atomic rename:
 //     1. Write new state → progress.json.tmp
 //     2. fs.renameSync(tmp → progress.json)   ← atomic on Linux/macOS/Windows
 //   If the process crashes between steps 1 and 2, the old progress.json is
@@ -11,13 +11,17 @@
 //   already advanced — no duplicate send.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { existsSync, readFileSync, writeFileSync, renameSync } from "fs";
+import { existsSync, readFileSync, writeFileSync, renameSync, mkdirSync } from "fs";
 import { resolve } from "path";
 import type { DispatchState } from "./types";
 
-// progress.json lives at the project root so it is easy to inspect
-const STATE_FILE = resolve(process.cwd(), "progress.json");
-const STATE_FILE_TMP = resolve(process.cwd(), "progress.json.tmp");
+const DATA_DIR = resolve(process.cwd(), "data");
+const STATE_FILE = resolve(DATA_DIR, "progress.json");
+const STATE_FILE_TMP = resolve(DATA_DIR, "progress.json.tmp");
+
+function ensureDataDir(): void {
+  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
+}
 
 export const INITIAL_STATE: DispatchState = {
   lastProcessedIndex: -1, // nothing sent yet
@@ -60,6 +64,7 @@ export function loadState(): DispatchState {
  * Called after every successful send so the index is always up to date.
  */
 export function saveState(state: DispatchState): void {
+  ensureDataDir();
   const updated: DispatchState = {
     ...state,
     lastUpdatedAt: new Date().toISOString(),
