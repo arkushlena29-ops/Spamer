@@ -98,9 +98,14 @@ function AccountsTab() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      const cleanedForm = {
+        ...form,
+        email: form.email.replace(/\s/g, ""),
+        password: form.password?.replace(/\s/g, "") || undefined,
+      };
       const url    = editing ? `/api/email/accounts/${editing.id}` : "/api/email/accounts";
       const method = editing ? "PUT" : "POST";
-      await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(cleanedForm) });
       setShowForm(false);
       load();
     } finally { setSaving(false); }
