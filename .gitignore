@@ -44,6 +44,7 @@ next-env.d.ts
 progress.json
 data/*.tmp
 data/smtp-usage.json
+data/smtp-accounts.json
 progress.json.tmp
 progress_backup_*.json
 progress_corrupt_*.json

@@ -291,14 +291,26 @@ function DispatchTab() {
     return () => { es.close(); setSseConnected(false); };
   }, [appendLog]);
 
-  const handleStart = () =>
+  const [starting, setStarting] = useState(false);
+const [resetting, setResetting] = useState(false);
+
+  const handleStart = () => {
+    if (isActive) return;
+    setStarting(true);
     fetch("/api/email/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ delayBetweenEmailsMs: delayMs, batchSize, batchPauseMs, dryRun }),
-    });
+    }).finally(() => setTimeout(() => setStarting(false), 3000));
+  };
 
   const handleStop = () => fetch("/api/email/stop", { method: "POST" });
+
+  const handleReset = async () => {
+    setResetting(true);
+    await fetch("/api/email/reset", { method: "POST" });
+    setTimeout(() => window.location.reload(), 500);
+  };
 
   const progress = status.totalRows > 0
     ? Math.min(100, ((status.lastProcessedIndex + 1) / status.totalRows) * 100) : 0;
@@ -331,8 +343,11 @@ function DispatchTab() {
         </label>
 
         <div style={{ marginLeft: "auto", display: "flex", gap: "10px" }}>
-          <button onClick={handleStart} disabled={isActive} style={{ ...btn("#2563eb", "#fff", isActive), padding: "10px 22px", fontSize: "14px", fontWeight: 700 }}>
-            ▶ Начать отправку
+          <button onClick={handleReset} disabled={isActive || resetting} style={{ ...btn("#1e293b", "#94a3b8", isActive || resetting), padding: "8px 16px", fontSize: "13px", fontWeight: 600 }}>
+            {resetting ? "Сброс…" : "🔄 Сбросить"}
+          </button>
+          <button onClick={handleStart} disabled={isActive || starting} style={{ ...btn("#2563eb", "#fff", isActive || starting), padding: "10px 22px", fontSize: "14px", fontWeight: 700 }}>
+            {starting ? "Запуск…" : "▶ Начать отправку"}
           </button>
           <button onClick={handleStop} disabled={!isActive || status.stopping}
             style={{ ...btn("#7f1d1d", "#fca5a5", !isActive || status.stopping), padding: "10px 22px", fontSize: "14px", fontWeight: 700 }}>
