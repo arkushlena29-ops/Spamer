@@ -43,7 +43,7 @@ export interface RunConfig {
 }
 
 export const DEFAULT_CONFIG: RunConfig = {
-  delayBetweenEmailsMs: parseInt(process.env.EMAIL_DELAY_MS ?? "1000", 10),
+  delayBetweenEmailsMs: parseInt(process.env.EMAIL_DELAY_MS ?? "60000", 10),
   batchSize: parseInt(process.env.EMAIL_BATCH_SIZE ?? "50", 10),
   batchPauseMs: parseInt(process.env.EMAIL_BATCH_PAUSE_MS ?? "5000", 10),
   dryRun: process.env.EMAIL_DRY_RUN === "true",

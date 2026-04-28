@@ -283,7 +283,7 @@ function DispatchTab() {
   const [status, setStatus]           = useState<WorkerStatus>(INITIAL_STATUS);
   const [logs, setLogs]               = useState<LogEntry[]>([]);
   const [sseConnected, setSseConnected] = useState(false);
-  const [delayMs, setDelayMs]         = useState(1000);
+  const [delayMs, setDelayMs]         = useState(60000);
   const [batchSize, setBatchSize]     = useState(50);
   const [batchPauseMs, setBatchPauseMs] = useState(5000);
   const [dryRun, setDryRun] = useState(false);
