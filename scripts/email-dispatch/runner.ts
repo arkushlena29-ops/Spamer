@@ -13,12 +13,33 @@ import { selectTemplate } from "./templates";
 import { getAccounts, getAccountPassword } from "../../lib/email-worker/accounts-store";
 import type { DispatchState, Logger, WorkerStatus } from "./types";
 
+const STATUS_OPTIONS = [
+  { id: "борг_менше_1000", label: "Борг менше 1000" },
+  { id: "відкрито_вп_за_вл", label: "Відкрито ВП за ВЛ" },
+  { id: "закритий_кредит", label: "Закритий кредит" },
+  { id: "не_знає_боржника", label: "Не знає боржника" },
+  { id: "не_опрацьована_угода", label: "Не опрацьована угода" },
+  { id: "не_співпрацює", label: "Не співпрацює" },
+  { id: "немає_домовленості", label: "Немає домовленості" },
+  { id: "опрацьована_угода", label: "Опрацьована угода" },
+  { id: "платить_за_вл", label: "Платить за ВЛ" },
+  { id: "помер", label: "Помер" },
+  { id: "пообіцяв_закрити", label: "Пообіцяв закрити" },
+  { id: "реструктуризація_діюча", label: "Реструктуризація діюча" },
+  { id: "реструктуризація_нова", label: "Реструктуризація нова" },
+  { id: "співпрацює", label: "Співпрацює" },
+  { id: "телефони_відсутні", label: "Телефони відсутні" },
+];
+
 export interface RunConfig {
   delayBetweenEmailsMs: number;
   batchSize: number;
   batchPauseMs: number;
   dryRun: boolean;
   reset: boolean;
+  statusFilters?: string[];
+  poolName?: string;
+  creditor?: string;
 }
 
 export const DEFAULT_CONFIG: RunConfig = {
@@ -77,12 +98,76 @@ export async function runDispatch(options: RunOptions): Promise<void> {
   // ── Step 3: Parse Excel ────────────────────────────────────────────────────
   if (signal.aborted) return;
 
-  const rows = parseEmailsFile(log);
+  const allRows = parseEmailsFile(log);
 
-  if (rows.length === 0) {
+  if (allRows.length === 0) {
     log({ level: "error", message: "В Excel файле не найдено валидных строк." });
     return;
   }
+
+  // Apply filters
+  let rows = allRows;
+  const filters: string[] = [];
+
+  // Status filter
+  if (cfg.statusFilters && cfg.statusFilters.length > 0) {
+    rows = rows.filter(row => {
+      const status = row["Статус"] as string;
+      return cfg.statusFilters!.some(filterId => {
+        const filterLabel = STATUS_OPTIONS.find(opt => opt.id === filterId)?.label;
+        return filterLabel && status === filterLabel;
+      });
+    });
+    filters.push("статусы");
+  }
+
+  // Pool name filter
+  if (cfg.poolName && cfg.poolName.trim()) {
+    const poolTerm = cfg.poolName.trim().toLowerCase();
+    rows = rows.filter(row => {
+      const poolName = (row["Назва пула"] as string || "").toLowerCase();
+      return poolName.includes(poolTerm);
+    });
+    filters.push("пул");
+  }
+
+  // Creditor filter
+  if (cfg.creditor && cfg.creditor.trim()) {
+    const creditorTerm = cfg.creditor.trim().toLowerCase();
+    rows = rows.filter(row => {
+      const creditor = (row["Первинний кредитор"] as string || "").toLowerCase();
+      return creditor.includes(creditorTerm);
+    });
+    filters.push("кредитор");
+  }
+
+  if (filters.length > 0) {
+    log({
+      level: "system",
+      message: `Отфильтровано: ${rows.length} из ${allRows.length} строк (применены: ${filters.join(", ")})`,
+    });
+  }
+
+  // Check if filters changed - if so, reset state to start from beginning
+  const currentFilterHash = JSON.stringify({
+    statusFilters: cfg.statusFilters?.sort() || [],
+    poolName: cfg.poolName || "",
+    creditor: cfg.creditor || "",
+  });
+  const savedFilterHash = persistedState.filterHash || "";
+  
+  if (currentFilterHash !== savedFilterHash && persistedState.lastProcessedIndex > 0) {
+    log({
+      level: "warn",
+      message: "Фильтры изменились — сбрасываем прогресс и начинаем заново",
+    });
+    persistedState.lastProcessedIndex = -1;
+    persistedState.totalSent = 0;
+    persistedState.totalFailed = 0;
+  }
+  
+  // Save new filter hash
+  (persistedState as any).filterHash = currentFilterHash;
 
   onProgress?.({ totalRows: rows.length, lastProcessedIndex: persistedState.lastProcessedIndex });
 

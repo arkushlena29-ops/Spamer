@@ -16,6 +16,7 @@ export interface DispatchState {
   totalFailed: number;
   startedAt: string;
   lastUpdatedAt: string;
+  filterHash?: string;
 }
 
 /** One SMTP account managed via the UI — stored in data/smtp-accounts.json (committed) */

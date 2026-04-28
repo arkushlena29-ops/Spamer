@@ -250,6 +250,35 @@ const INITIAL_STATUS: WorkerStatus = {
   totalRows: 0, lastProcessedIndex: -1, totalSent: 0, totalFailed: 0, startedAt: null,
 };
 
+const STATUS_OPTIONS = [
+  { id: "борг_менше_1000", label: "Борг менше 1000" },
+  { id: "відкрито_вп_за_вл", label: "Відкрито ВП за ВЛ" },
+  { id: "закритий_кредит", label: "Закритий кредит" },
+  { id: "не_знає_боржника", label: "Не знає боржника" },
+  { id: "не_опрацьована_угода", label: "Не опрацьована угода" },
+  { id: "не_співпрацює", label: "Не співпрацює" },
+  { id: "немає_домовленості", label: "Немає домовленості" },
+  { id: "опрацьована_угода", label: "Опрацьована угода" },
+  { id: "платить_за_вл", label: "Платить за ВЛ" },
+  { id: "помер", label: "Помер" },
+  { id: "пообіцяв_закрити", label: "Пообіцяв закрити" },
+  { id: "реструктуризація_діюча", label: "Реструктуризація діюча" },
+  { id: "реструктуризація_нова", label: "Реструктуризація нова" },
+  { id: "співпрацює", label: "Співпрацює" },
+  { id: "телефони_відсутні", label: "Телефони відсутні" },
+];
+
+const DEFAULT_SELECTED_STATUSES = [
+  "борг_менше_1000",
+  "не_знає_боржника",
+  "не_опрацьована_угода",
+  "не_співпрацює",
+  "немає_домовленості",
+  "опрацьована_угода",
+  "співпрацює",
+  "телефони_відсутні",
+];
+
 function DispatchTab() {
   const [status, setStatus]           = useState<WorkerStatus>(INITIAL_STATUS);
   const [logs, setLogs]               = useState<LogEntry[]>([]);
@@ -257,9 +286,48 @@ function DispatchTab() {
   const [delayMs, setDelayMs]         = useState(1000);
   const [batchSize, setBatchSize]     = useState(50);
   const [batchPauseMs, setBatchPauseMs] = useState(5000);
-  const [dryRun, setDryRun]           = useState(false);
-  const logEndRef = useRef<HTMLDivElement>(null);
+  const [dryRun, setDryRun] = useState(false);
+  const [isStatusPanelOpen, setIsStatusPanelOpen] = useState<boolean>(() => {
+    const saved = localStorage.getItem("emailStatusPanelOpen");
+    return saved !== null ? saved === "true" : true;
+  });
+  const [poolNameFilter, setPoolNameFilter] = useState<string>(() => {
+    const saved = localStorage.getItem("emailPoolNameFilter");
+    return saved !== null ? saved : "";
+  });
+  const [creditorFilter, setCreditorFilter] = useState<string>(() => {
+    const saved = localStorage.getItem("emailCreditorFilter");
+    return saved !== null ? saved : "";
+  });
 
+  const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(() => {
+    const saved = localStorage.getItem("emailStatusFilters");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved) as string[];
+        return new Set(parsed);
+      } catch {}
+    }
+    return new Set(DEFAULT_SELECTED_STATUSES);
+  });
+
+  useEffect(() => {
+    localStorage.setItem("emailStatusFilters", JSON.stringify(Array.from(selectedStatuses)));
+  }, [selectedStatuses]);
+
+  useEffect(() => {
+    localStorage.setItem("emailStatusPanelOpen", String(isStatusPanelOpen));
+  }, [isStatusPanelOpen]);
+
+  useEffect(() => {
+    localStorage.setItem("emailPoolNameFilter", poolNameFilter);
+  }, [poolNameFilter]);
+
+  useEffect(() => {
+    localStorage.setItem("emailCreditorFilter", creditorFilter);
+  }, [creditorFilter]);
+
+  const logEndRef = useRef<HTMLDivElement>(null);
   const appendLog = useCallback((entry: LogEntry) => {
     setLogs((prev) => {
       const next = [...prev, entry];
@@ -297,16 +365,46 @@ function DispatchTab() {
   }, [appendLog]);
 
   const [starting, setStarting] = useState(false);
-const [resetting, setResetting] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const handleStart = () => {
     if (isActive) return;
     setStarting(true);
+    const filters: { statusFilters?: string[]; poolName?: string; creditor?: string } = {};
+    if (selectedStatuses.size > 0) {
+      filters.statusFilters = Array.from(selectedStatuses);
+    }
+    if (poolNameFilter.trim()) {
+      filters.poolName = poolNameFilter.trim();
+    }
+    if (creditorFilter.trim()) {
+      filters.creditor = creditorFilter.trim();
+    }
     fetch("/api/email/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ delayBetweenEmailsMs: delayMs, batchSize, batchPauseMs, dryRun }),
+      body: JSON.stringify({ delayBetweenEmailsMs: delayMs, batchSize, batchPauseMs, dryRun, ...filters }),
     }).finally(() => setTimeout(() => setStarting(false), 3000));
+  };
+
+  const toggleStatus = (statusId: string) => {
+    setSelectedStatuses(prev => {
+      const next = new Set(prev);
+      if (next.has(statusId)) {
+        next.delete(statusId);
+      } else {
+        next.add(statusId);
+      }
+      return next;
+    });
+  };
+
+  const toggleAllStatuses = () => {
+    if (selectedStatuses.size === STATUS_OPTIONS.length) {
+      setSelectedStatuses(new Set());
+    } else {
+      setSelectedStatuses(new Set(STATUS_OPTIONS.map(s => s.id)));
+    }
   };
 
   const handleStop = () => fetch("/api/email/stop", { method: "POST" });
@@ -324,6 +422,108 @@ const [resetting, setResetting] = useState(false);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+
+      {/* Filters */}
+      <section style={{ background: surface, border: `1px solid ${border}`, borderRadius: "10px", overflow: "hidden" }}>
+        <div 
+          onClick={() => setIsStatusPanelOpen(!isStatusPanelOpen)}
+          style={{ 
+            padding: "16px", 
+            cursor: "pointer",
+            display: "flex", 
+            justifyContent: "space-between", 
+            alignItems: "center",
+            userSelect: "none"
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span style={{ 
+              fontSize: "13px", 
+              fontWeight: 600, 
+              color: bodyText,
+              transition: "transform 0.2s",
+              display: "inline-block",
+              transform: isStatusPanelOpen ? "rotate(90deg)" : "rotate(0deg)"
+            }}>▶</span>
+            <span style={{ fontSize: "13px", fontWeight: 600, color: bodyText }}>Фільтри</span>
+            {selectedStatuses.size > 0 && (
+              <span style={{ 
+                fontSize: "11px", 
+                fontWeight: 600, 
+                color: "#93c5fd", 
+                background: "#1e3a5f",
+                padding: "2px 8px", 
+                borderRadius: "99px" 
+              }}>
+                {selectedStatuses.size} статусів
+              </span>
+            )}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleAllStatuses();
+              }} 
+              style={{ 
+                fontSize: "11px", 
+                color: muted, 
+                background: "none", 
+                border: "none", 
+                cursor: isActive ? "not-allowed" : "pointer",
+                opacity: isActive ? 0.5 : 1
+              }}
+            >
+              {selectedStatuses.size === STATUS_OPTIONS.length ? "Зняти всі" : "Вибрати всі"}
+            </button>
+          </div>
+        </div>
+        {isStatusPanelOpen && (
+          <div style={{ padding: "0 16px 16px 16px" }}>
+            {/* Status checkboxes */}
+            <div style={{ marginBottom: "16px" }}>
+              <div style={{ fontSize: "11px", fontWeight: 600, color: dimText, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>Статус</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "8px" }}>
+                {STATUS_OPTIONS.map((opt) => (
+                  <label key={opt.id} style={{ display: "flex", alignItems: "center", gap: "7px", cursor: isActive ? "not-allowed" : "pointer", fontSize: "12px", color: bodyText, opacity: isActive ? 0.5 : 1 }}>
+                    <input 
+                      type="checkbox" 
+                      checked={selectedStatuses.has(opt.id)}
+                      onChange={() => toggleStatus(opt.id)}
+                      disabled={isActive}
+                      style={{ accentColor: "#3b82f6", width: "14px", height: "14px" }} 
+                    />
+                    <span style={{ userSelect: "none" }}>{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            {/* Text filters */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: 600, color: dimText, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "6px" }}>Назва пула</div>
+                <input 
+                  style={inputBase} 
+                  value={poolNameFilter}
+                  onChange={(e) => setPoolNameFilter(e.target.value)}
+                  placeholder="Введіть назву пула..."
+                  disabled={isActive}
+                />
+              </div>
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: 600, color: dimText, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "6px" }}>Первинний кредитор</div>
+                <input 
+                  style={inputBase} 
+                  value={creditorFilter}
+                  onChange={(e) => setCreditorFilter(e.target.value)}
+                  placeholder="Введіть кредитора..."
+                  disabled={isActive}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* Config + controls */}
       <div style={{ display: "flex", gap: "16px", alignItems: "flex-end", flexWrap: "wrap" }}>
@@ -356,7 +556,7 @@ const [resetting, setResetting] = useState(false);
           </button>
           <button onClick={handleStop} disabled={!isActive || status.stopping}
             style={{ ...btn("#7f1d1d", "#fca5a5", !isActive || status.stopping), padding: "10px 22px", fontSize: "14px", fontWeight: 700 }}>
-            {status.stopping ? "⏳ Останавливается…" : "■ Стоп"}
+            {status.stopping ? "⏹ Останавливается…" : "■ Стоп"}
           </button>
         </div>
       </div>
