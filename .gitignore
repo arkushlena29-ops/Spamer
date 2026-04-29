@@ -49,4 +49,4 @@ progress.json.tmp
 progress_backup_*.json
 progress_corrupt_*.json
 scripts/dist/
-public/emails.xlsx
+public/*.xlsx
