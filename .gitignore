@@ -45,6 +45,7 @@ progress.json
 data/*.tmp
 data/smtp-usage.json
 data/smtp-accounts.json
+data/row-statuses.json
 progress.json.tmp
 progress_backup_*.json
 progress_corrupt_*.json

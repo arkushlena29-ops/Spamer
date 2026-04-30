@@ -771,17 +771,59 @@ function DispatchTab() {
 
 	const handleReset = async () => {
 		setResetting(true);
-		await fetch("/api/email/reset", { method: "POST" });
-		setTimeout(() => window.location.reload(), 500);
+
+		try {
+			// 1) Delete row statuses
+			await fetch("/api/email/reset/statuses", { method: "DELETE" }).catch(
+				() => {},
+			);
+
+			// 2) Clear progress JSON data (this removes sent/failed indices that cause coloring)
+			await fetch("/api/email/reset/progress", { method: "POST" }).catch(
+				() => {},
+			);
+
+			// 3) Uncolor all cells - clear localStorage color/filter preferences
+			localStorage.removeItem("emailStatusFilters");
+			localStorage.removeItem("emailPoolNameFilter");
+			localStorage.removeItem("emailCreditorFilter");
+			localStorage.removeItem("emailStatusPanelOpen");
+
+			// Reset selected statuses to defaults
+			setSelectedStatuses(new Set(DEFAULT_SELECTED_STATUSES));
+
+			// 4) Regenerate emails.xlsx without any sent/failed indices (no coloring)
+			await fetch("/api/email/reset/excel", { method: "POST" }).catch(() => {});
+
+			// 5) Reset worker manager state (totalRows, lastProcessedIndex, totalSent, totalFailed)
+			await fetch("/api/email/status/reset", { method: "POST" }).catch(
+				() => {},
+			);
+		} catch (e) {
+			console.error("Failed to reset:", e);
+		}
+
+		setResetting(false);
 	};
 
 	const progress =
-		status.totalRows > 0
+		status.totalRows > 0 && status.lastProcessedIndex >= 0
 			? Math.min(
 					100,
 					((status.lastProcessedIndex + 1) / status.totalRows) * 100,
 				)
 			: 0;
+	const rowProgressText =
+		status.totalRows === 0 || status.lastProcessedIndex < 0
+			? "—"
+			: `${(status.lastProcessedIndex + 1).toLocaleString()} / ${status.totalRows.toLocaleString()}`;
+	const remainingText =
+		status.totalRows > 0
+			? Math.max(
+					0,
+					status.totalRows - (status.lastProcessedIndex + 1),
+				).toLocaleString()
+			: "—";
 
 	const isActive = status.running || status.stopping;
 
@@ -892,35 +934,18 @@ function DispatchTab() {
 						marginBottom: "10px",
 					}}>
 					<div style={{ display: "flex", gap: "28px" }}>
-						<Stat
-							label='Строка'
-							value={
-								status.lastProcessedIndex < 0
-									? "—"
-									: `${(status.lastProcessedIndex + 1).toLocaleString()} / ${status.totalRows.toLocaleString()}`
-							}
-						/>
+						<Stat label='Строка' value={rowProgressText} />
 						<Stat
 							label='Отправлено'
-							value={status.totalSent.toLocaleString()}
+							value={(status.totalSent ?? 0).toLocaleString()}
 							color='#86efac'
 						/>
 						<Stat
 							label='Ошибки'
-							value={status.totalFailed.toLocaleString()}
+							value={(status.totalFailed ?? 0).toLocaleString()}
 							color='#fca5a5'
 						/>
-						<Stat
-							label='Осталось'
-							value={
-								status.totalRows > 0
-									? Math.max(
-											0,
-											status.totalRows - (status.lastProcessedIndex + 1),
-										).toLocaleString()
-									: "—"
-							}
-						/>
+						<Stat label='Осталось' value={remainingText} />
 					</div>
 					<div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
 						<StatusBadge status={status} />
@@ -961,7 +986,7 @@ function DispatchTab() {
 						color: dimText,
 						textAlign: "right",
 					}}>
-					{progress.toFixed(1)}%
+					{(progress || 0).toFixed(1)}%
 				</div>
 			</div>
 
@@ -1364,7 +1389,7 @@ export default function EmailTab() {
 				style={{
 					display: "flex",
 					gap: "2px",
-					padding: "12px 32px 0",
+					padding: "0 32px 0",
 					borderBottom: `1px solid ${border}`,
 					flexShrink: 0,
 				}}>

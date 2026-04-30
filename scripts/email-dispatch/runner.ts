@@ -6,8 +6,18 @@
 // with an AbortSignal and a structured logger so it can stream logs over SSE.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import XLSX from "xlsx-js-style";
 import { parseEmailsFile } from "./parser";
-import { loadState, saveState, resetState } from "./state";
+import {
+	loadState,
+	saveState,
+	resetState,
+	markRowSent,
+	markRowFailed,
+	resetRowStatuses,
+	resetRowColors,
+	colorAllRows,
+} from "./state";
 import { MailDispatcher } from "./mailer";
 import { selectTemplate } from "./templates";
 import {
@@ -104,6 +114,10 @@ export async function runDispatch(options: RunOptions): Promise<void> {
 	// ── Step 1: Optional reset ─────────────────────────────────────────────────
 	if (cfg.reset) {
 		resetState();
+		resetRowStatuses();
+		const wb = XLSX.readFile("public/emails.xlsx");
+		resetRowColors(wb); // Reset Excel colors to white
+		XLSX.writeFile(wb, "public/emails.xlsx");
 		log({
 			level: "system",
 			message: "Состояние сброшено — начинаем с строки 0",
@@ -191,6 +205,63 @@ export async function runDispatch(options: RunOptions): Promise<void> {
 		message: `${remaining} строк осталось (${startIndex} уже отправлено, ${rows.length} всего)`,
 	});
 
+	// ── Helper: Auto-fit columns after coloring ─────────────────────────────────
+	function autoFitColumns(ws: any): void {
+		const refRange = ws["!ref"];
+		if (!refRange) return;
+
+		const range = parseRange(refRange);
+
+		for (let c = range.s.c; c <= range.e.c; ++c) {
+			let maxWidth = 0;
+			const colLetter = String.fromCharCode(65 + c);
+
+			// Check all rows for this column
+			for (let r = range.s.r; r <= range.e.r; ++r) {
+				const cellAddress = `${colLetter}${r + 1}`;
+				if (ws[cellAddress]) {
+					const val = ws[cellAddress].v ?? "";
+					const strVal = String(val);
+					maxWidth = Math.max(maxWidth, strVal.length);
+				}
+			}
+
+			// Set column width with some padding
+			ws["!cols"] = ws["!cols"] || [];
+			while (ws["!cols"].length < c) {
+				ws["!cols"].push({ wch: 10 }); // default
+			}
+			ws["!cols"][c] = { wch: Math.max(maxWidth + 2, 15) };
+		}
+	}
+
+	function parseRange(range: string): {
+		s: { r: number; c: number };
+		e: { r: number; c: number };
+	} {
+		const parts = range.split(":");
+		const first = parts[0]; // e.g., "A1"
+		const last = parts[parts.length - 1]; // e.g., "S4912"
+
+		const startCol = colToNum(first.substring(0, 1));
+		const endCol = colToNum(last.substring(0, 1));
+		const startRow = parseInt(first.substring(1), 10);
+		const endRow = parseInt(last.substring(1), 10);
+
+		return {
+			s: { r: startRow - 1, c: startCol },
+			e: { r: endRow - 1, c: endCol },
+		}; // 0-indexed
+	}
+
+	function colToNum(col: string): number {
+		let num = 0;
+		for (const char of col.toUpperCase()) {
+			num = num * 26 + (char.charCodeAt(0) - 64);
+		}
+		return num;
+	}
+
 	// ── Step 4: Initialise mailer ──────────────────────────────────────────────
 	if (signal.aborted) return;
 
@@ -271,6 +342,7 @@ export async function runDispatch(options: RunOptions): Promise<void> {
 					smtpNum,
 					smtpHost,
 				});
+				markRowSent(i); // Mark as sent for Excel coloring
 			}
 
 			// ── CRITICAL: advance the index ONLY after a confirmed send ───────────
@@ -295,6 +367,7 @@ export async function runDispatch(options: RunOptions): Promise<void> {
 				smtpNum,
 				smtpHost,
 			});
+			markRowFailed(i); // Mark as failed for Excel coloring
 			currentState = {
 				...currentState,
 				totalFailed: currentState.totalFailed + 1,
@@ -322,6 +395,16 @@ export async function runDispatch(options: RunOptions): Promise<void> {
 
 	dispatcher.closeAll();
 
+	// ── Step 6: Color Excel rows and auto-fit columns ───────────────────────────
+	log({
+		level: "system",
+		message: "Формируем Excel файл с цветами и авто-подгонкой колонок…",
+	});
+	const wb = XLSX.readFile("public/emails.xlsx");
+	colorAllRows(wb);
+	autoFitColumns(wb.Sheets[wb.SheetNames[0]]);
+	XLSX.writeFile(wb, "public/emails.xlsx");
+
 	if (!signal.aborted) {
 		log({
 			level: "system",
@@ -329,4 +412,3 @@ export async function runDispatch(options: RunOptions): Promise<void> {
 		});
 	}
 }
-

@@ -1,0 +1,14 @@
+# Prevent binary ingestion
+
+_.xlsx
+_.pdf
+_.png
+_.jpg
+\*.exe
+
+# Prevent directory spiraling
+
+node_modules/
+.git/
+dist/
+build/
