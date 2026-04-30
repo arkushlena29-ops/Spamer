@@ -291,14 +291,11 @@ export function colorRow(wb: any, rowIndex: number, status: RowStatus): void {
 
 	// Decode range manually since wb.utils may not be available
 	const colStr = refRange.substring(0, 1); // e.g., "A"
-	const rowNum = parseInt(refRange.substring(1), 10); // e.g., 1 for A1
-	const startCol = colStr.charCodeAt(0) - 64; // A=1, B=2, etc.
+	const startCol = colStr.charCodeAt(0) - 65; // A=1, B=2, etc.
 
 	// Get end column from the range string (e.g., "A1:S4912" -> "S")
 	const lastChar = refRange.split(":")[1]; // e.g., "4912" for A1:S4912
-	const endColStr = refRange
-		.substring(0, refRange.indexOf(":") + 1)
-		.split(":")[0]; // e.g., "S"
+	const endColStr = lastChar.substring(0, 1); // e.g., "S"
 	const endCol = endColStr.charCodeAt(0) - 64;
 
 	// Fill ALL cells in the row with background color (including empty ones)
