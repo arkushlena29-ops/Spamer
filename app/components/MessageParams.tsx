@@ -1,4 +1,4 @@
-import { PARAM_FIELDS } from "./constants";
+import { PARAM_FIELDS, COMPUTED_FIELDS } from "./constants";
 import type { Params } from "./types";
 
 interface Props {
@@ -42,7 +42,7 @@ export default function MessageParams({ params, onChange }: Props) {
 							{label}
 						</label>
 						<input
-							type="text"
+							type='text'
 							value={params[key]}
 							onChange={(e) => onChange(key, e.target.value)}
 							style={{
@@ -63,6 +63,43 @@ export default function MessageParams({ params, onChange }: Props) {
 					</div>
 				))}
 			</div>
+			{/* Computed field - readonly */}
+			<div style={{ marginTop: "10px" }}>
+				<label
+					style={{
+						display: "block",
+						marginBottom: "4px",
+						fontSize: "11px",
+						fontWeight: 600,
+						color: "#94a3b8",
+						textTransform: "uppercase",
+						letterSpacing: "0.05em",
+					}}>
+					{COMPUTED_FIELDS[0]?.label}
+				</label>
+				<input
+					type='text'
+					value={
+						params.debt && params.months
+							? Number(Number(params.debt) / Number(params.months)).toFixed(2)
+							: ""
+					}
+					readOnly
+					style={{
+						width: "100%",
+						padding: "7px 10px",
+						fontSize: "13px",
+						background: "#0f172a",
+						border: "1px solid #475569",
+						borderRadius: "6px",
+						color: "#cbd5e1",
+						outline: "none",
+						boxSizing: "border-box",
+						opacity: 0.7,
+					}}
+				/>
+			</div>
 		</div>
 	);
 }
+
